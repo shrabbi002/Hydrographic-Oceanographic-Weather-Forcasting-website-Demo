@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/ui/page-header"
 import { PublicationsListing } from "@/components/products/publications-listing"
+import { DEMO_PUBLICATIONS } from "@/lib/demo-data"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -9,17 +10,28 @@ export const metadata: Metadata = {
 }
 
 export default async function PublicationsPage() {
-  const supabase = await createClient()
+  let publications = null
 
-  const { data: publications } = await supabase
-    .from("publications")
-    .select("*")
-    .eq("is_published", true)
-    .order("category")
-    .order("title")
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from("publications")
+      .select("*")
+      .eq("is_published", true)
+      .order("category")
+      .order("title")
+    publications = data
+  } catch {
+    // Supabase unavailable — use demo data
+  }
+
+  // Fallback to demo data
+  if (!publications || publications.length === 0) {
+    publications = DEMO_PUBLICATIONS.filter((p) => p.is_published)
+  }
 
   // Group by category
-  const groupedPublications = publications?.reduce(
+  const groupedPublications = publications.reduce(
     (acc, pub) => {
       if (!acc[pub.category]) {
         acc[pub.category] = []

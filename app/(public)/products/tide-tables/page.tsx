@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/ui/page-header"
 import { TideTablesListing } from "@/components/products/tide-tables-listing"
+import { DEMO_TIDE_TABLES } from "@/lib/demo-data"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -9,17 +10,28 @@ export const metadata: Metadata = {
 }
 
 export default async function TideTablesPage() {
-  const supabase = await createClient()
+  let tideTables = null
 
-  const { data: tideTables } = await supabase
-    .from("tide_tables")
-    .select("*")
-    .eq("is_published", true)
-    .order("year", { ascending: false })
-    .order("station")
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from("tide_tables")
+      .select("*")
+      .eq("is_published", true)
+      .order("year", { ascending: false })
+      .order("station")
+    tideTables = data
+  } catch {
+    // Supabase unavailable — use demo data
+  }
+
+  // Fallback to demo data
+  if (!tideTables || tideTables.length === 0) {
+    tideTables = DEMO_TIDE_TABLES.filter((t) => t.is_published)
+  }
 
   // Group by year
-  const groupedByYear = tideTables?.reduce(
+  const groupedByYear = tideTables.reduce(
     (acc, table) => {
       const year = table.year
       if (!acc[year]) {
